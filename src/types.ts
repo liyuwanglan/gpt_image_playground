@@ -408,6 +408,8 @@ export interface ExportData {
   exportedAt: string
   settings?: AppSettings
   tasks?: TaskRecord[]
+  favoriteCollections?: FavoriteCollection[]
+  defaultFavoriteCollectionId?: string | null
   agentConversations?: AgentConversation[]
   /** imageId → 图片信息 */
   imageFiles?: Record<string, {

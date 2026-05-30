@@ -4274,8 +4274,12 @@ export async function deleteFavoriteCollection(collectionId: string, deleteTasks
   const state = useStore.getState()
   const collection = state.favoriteCollections.find((item) => item.id === collectionId)
   if (!collection || state.favoriteCollections.length <= 1) return
-  const taskIds = state.tasks.filter((task) => getTaskFavoriteCollectionIds(task).includes(collectionId)).map((task) => task.id)
+  const collectionTaskRefs = state.tasks
+    .map((task) => ({ task, favoriteIds: getTaskFavoriteCollectionIds(task) }))
+    .filter(({ favoriteIds }) => favoriteIds.includes(collectionId))
+  const taskIds = collectionTaskRefs.map(({ task }) => task.id)
   const nextCollections = state.favoriteCollections.filter((item) => item.id !== collectionId)
+  const nextCollectionIdSet = new Set(nextCollections.map((item) => item.id))
   state.setFavoriteCollections(nextCollections)
   if (state.defaultFavoriteCollectionId === collectionId) {
     const nextDefaultId = nextCollections[0]?.id
@@ -4283,16 +4287,38 @@ export async function deleteFavoriteCollection(collectionId: string, deleteTasks
   }
   if (state.activeFavoriteCollectionId === collectionId) state.setActiveFavoriteCollectionId(null)
   if (deleteTasks) {
-    if (taskIds.length) await removeMultipleTasks(taskIds)
+    const idsByTaskToKeep = new Map<string, string[]>()
+    const taskIdsToDelete: string[] = []
+    for (const { task, favoriteIds } of collectionTaskRefs) {
+      const nextIds = favoriteIds.filter((id) => id !== collectionId && nextCollectionIdSet.has(id))
+      if (nextIds.length) {
+        idsByTaskToKeep.set(task.id, nextIds)
+      } else {
+        taskIdsToDelete.push(task.id)
+      }
+    }
+    if (idsByTaskToKeep.size) {
+      const latestTasks = useStore.getState().tasks
+      const updated = latestTasks.map((task) => {
+        const ids = idsByTaskToKeep.get(task.id)
+        return ids ? { ...task, favoriteCollectionIds: ids, isFavorite: true } : task
+      })
+      useStore.getState().setTasks(updated)
+      await Promise.all(updated.filter((task) => idsByTaskToKeep.has(task.id)).map((task) => putTask(task)))
+    }
+    if (taskIdsToDelete.length) await removeMultipleTasks(taskIdsToDelete)
   } else if (taskIds.length) {
-    const idSet = new Set(taskIds)
+    const idsByTaskId = new Map(collectionTaskRefs.map(({ task, favoriteIds }) => [
+      task.id,
+      favoriteIds.filter((id) => id !== collectionId && nextCollectionIdSet.has(id)),
+    ]))
     const updated = state.tasks.map((task) => {
-      if (!idSet.has(task.id)) return task
-      const ids = getTaskFavoriteCollectionIds(task).filter((id) => id !== collectionId)
+      const ids = idsByTaskId.get(task.id)
+      if (!ids) return task
       return { ...task, favoriteCollectionIds: ids, isFavorite: ids.length > 0 }
     })
     state.setTasks(updated)
-    await Promise.all(updated.filter((task) => idSet.has(task.id)).map((task) => putTask(task)))
+    await Promise.all(updated.filter((task) => idsByTaskId.has(task.id)).map((task) => putTask(task)))
   }
   useStore.getState().setSelectedFavoriteCollectionIds((ids) => ids.filter((id) => id !== collectionId))
   useStore.getState().showToast(`已删除收藏夹「${collection.name}」`, 'success')
@@ -4631,7 +4657,7 @@ export async function exportData(options: ExportOptions = { exportConfig: true, 
   try {
     const tasks = options.exportTasks ? await getAllTasks() : []
     const images = options.exportTasks ? await getAllImages() : []
-    const { settings, agentConversations } = useStore.getState()
+    const { settings, agentConversations, favoriteCollections, defaultFavoriteCollectionId } = useStore.getState()
     const exportedAt = Date.now()
     const imageCreatedAtFallback = new Map<string, number>()
 
@@ -4700,6 +4726,8 @@ export async function exportData(options: ExportOptions = { exportConfig: true, 
     if (options.exportConfig) manifest.settings = settings
     if (options.exportTasks) {
       manifest.tasks = tasks
+      manifest.favoriteCollections = favoriteCollections
+      manifest.defaultFavoriteCollectionId = defaultFavoriteCollectionId
       manifest.agentConversations = getPersistableAgentConversations(agentConversations)
       manifest.imageFiles = imageFiles
       manifest.thumbnailFiles = thumbnailFiles
@@ -4786,7 +4814,21 @@ export async function importData(file: File, options: ImportOptions = { importCo
       }
 
       const tasks = await getAllTasks()
-      useStore.getState().setTasks(tasks)
+      const state = useStore.getState()
+      const importedCollections = normalizeFavoriteCollections(data.favoriteCollections)
+      const favoriteCollections = importedCollections.length
+        ? ensureDefaultFavoriteCollection(normalizeFavoriteCollections([...state.favoriteCollections, ...importedCollections]))
+        : state.favoriteCollections
+      const defaultFavoriteCollectionId = importedCollections.length
+        ? resolveDefaultFavoriteCollectionId(favoriteCollections, data.defaultFavoriteCollectionId)
+        : state.defaultFavoriteCollectionId
+      const normalizedFavorites = normalizeLoadedFavoriteState(tasks, favoriteCollections, defaultFavoriteCollectionId)
+      useStore.setState({
+        tasks: normalizedFavorites.tasks,
+        favoriteCollections: normalizedFavorites.collections,
+        defaultFavoriteCollectionId: normalizedFavorites.defaultFavoriteCollectionId,
+      })
+      if (normalizedFavorites.changed) await Promise.all(normalizedFavorites.tasks.map((task) => putTask(task)))
       const importedAgentConversations = normalizeAgentConversations(data.agentConversations)
         .filter((conversation) => !isEmptyAgentConversation(conversation))
       useStore.setState((state) => {
