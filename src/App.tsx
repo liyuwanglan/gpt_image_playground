@@ -5,6 +5,8 @@ import { buildSettingsFromUrlParams, clearUrlSettingParams, hasUrlSettingParams 
 import { mergeImportedSettings } from './lib/apiProfiles'
 import { getCustomProviderConfigUrl, loadCustomProviderSettingsFromUrl } from './lib/customProviderConfigUrl'
 import { useDockerApiUrlMigrationNotice } from './hooks/useDockerApiUrlMigrationNotice'
+import { useAuthKey } from './lib/auth'
+import LoginPage from './components/LoginPage'
 import Header from './components/Header'
 import SearchBar from './components/SearchBar'
 import TaskGrid from './components/TaskGrid'
@@ -24,6 +26,7 @@ import { useGlobalClickSuppression } from './lib/clickSuppression'
 let customProviderConfigUrlImportStarted = false
 
 export default function App() {
+  const authKey = useAuthKey()
   const setSettings = useStore((s) => s.setSettings)
   const appMode = useStore((s) => s.appMode)
   const filterFavorite = useStore((s) => s.filterFavorite)
@@ -62,6 +65,14 @@ export default function App() {
     initStore()
   }, [setSettings])
 
+  const handleLogin = (key: string) => {
+    const state = useStore.getState()
+    const nextProfiles = state.settings.profiles.map((p) =>
+      p.id === state.settings.activeProfileId ? { ...p, apiKey: key } : p,
+    )
+    state.setSettings({ ...state.settings, profiles: nextProfiles })
+  }
+
   useEffect(() => {
     const preventPageImageDrag = (e: DragEvent) => {
       if ((e.target as HTMLElement | null)?.closest('img')) {
@@ -72,6 +83,8 @@ export default function App() {
     document.addEventListener('dragstart', preventPageImageDrag)
     return () => document.removeEventListener('dragstart', preventPageImageDrag)
   }, [])
+
+  if (!authKey) return <LoginPage onLogin={handleLogin} />
 
   return (
     <>

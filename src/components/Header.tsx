@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { useVersionCheck } from '../hooks/useVersionCheck'
 import { useTooltip } from '../hooks/useTooltip'
 import { dismissAllTooltips } from '../lib/tooltipDismiss'
+import { useAuthKey, logoutAuth, maskApiKey } from '../lib/auth'
 import ViewportTooltip from './ViewportTooltip'
 import HelpModal from './HelpModal'
 import HistoryModal from './HistoryModal'
@@ -20,6 +21,7 @@ function isInstalledPwa() {
 }
 
 export default function Header() {
+  const authKey = useAuthKey()
   const appMode = useStore((s) => s.appMode)
   const setAppMode = useStore((s) => s.setAppMode)
   const setShowSettings = useStore((s) => s.setShowSettings)
@@ -252,6 +254,18 @@ export default function Header() {
             </button>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {authKey && (
+              <div className="hidden sm:flex items-center gap-2 mr-1 text-sm text-gray-600 dark:text-gray-400">
+                <span className="font-mono text-xs bg-gray-100 dark:bg-white/[0.06] px-2 py-1 rounded-lg">{maskApiKey(authKey)}</span>
+                <button
+                  type="button"
+                  onClick={logoutAuth}
+                  className="text-xs text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors px-1.5 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04]"
+                >
+                  退出
+                </button>
+              </div>
+            )}
             {!isPwaInstalled && (
               <div
                 className="relative"
