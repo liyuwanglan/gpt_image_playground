@@ -241,7 +241,7 @@ npm install
 |------|------|
 | 登录页 | 访问时需先输入 OpenAI API Key 才能进入主界面 |
 | API Key 存储 | 勾选"保持登录状态"则存 localStorage，否则仅内存 |
-| 预设 API URL | 设置 → API 配置 → API URL 为下拉选择，默认 `https://axiomcode.top/v1` |
+| 预设 API URL | 设置 → API 配置 → API URL 为下拉选择，默认 `https://axiomcode.dev/v1` |
 | 字体资源 | `public/fonts/` 内含 9 个 WOFF2 文件，构建后位于 `dist/fonts/`，**必须一起上传** |
 
 ---

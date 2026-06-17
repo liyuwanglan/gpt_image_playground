@@ -43,11 +43,10 @@
 
 **修改文件** `src/components/SettingsModal.tsx`：
 - 仅当 `provider === 'openai'` 时显示预设下拉
-- 四个预设地址：
-  - `https://axiomcode.top/v1`（默认）
-  - `https://api.axiomcode.top/v1`
-  - `https://cn-api.axiomcode.top/v1`
-  - `https://global.axiomcode.top/v1`
+- 三个预设地址：
+  - `https://axiomcode.dev/v1`（默认）
+  - `https://api.axiomcode.dev/v1`
+  - `https://global.axiomcode.dev/v1`
 - 其他 provider 保持原始文本输入框不变
 
 ---
