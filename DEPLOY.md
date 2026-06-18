@@ -106,9 +106,55 @@ location /assets/ {
     add_header Cache-Control "public, immutable";
     access_log off;
 }
+
+# ---- API 反向代理（解决 CORS 和 Cloudflare 524 超时）----
+# 代理 axiomcode.dev → 前端使用 /api-proxy/v1
+location /api-proxy/v1/ {
+    resolver 8.8.8.8 valid=30s;
+    proxy_pass https://axiomcode.dev/v1/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host axiomcode.dev;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Authorization $http_authorization;
+    proxy_pass_header Authorization;
+    proxy_read_timeout 600s;
+    proxy_connect_timeout 30s;
+    proxy_send_timeout 600s;
+}
+
+# 代理 api.axiomcode.dev → 前端使用 /api-proxy-api/v1
+location /api-proxy-api/v1/ {
+    resolver 8.8.8.8 valid=30s;
+    proxy_pass https://api.axiomcode.dev/v1/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host api.axiomcode.dev;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Authorization $http_authorization;
+    proxy_pass_header Authorization;
+    proxy_read_timeout 600s;
+    proxy_connect_timeout 30s;
+    proxy_send_timeout 600s;
+}
+
+# 代理 global.axiomcode.dev → 前端使用 /api-proxy-global/v1
+location /api-proxy-global/v1/ {
+    resolver 8.8.8.8 valid=30s;
+    proxy_pass https://global.axiomcode.dev/v1/;
+    proxy_ssl_server_name on;
+    proxy_set_header Host global.axiomcode.dev;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Authorization $http_authorization;
+    proxy_pass_header Authorization;
+    proxy_read_timeout 600s;
+    proxy_connect_timeout 30s;
+    proxy_send_timeout 600s;
+}
+# ---- API 反向代理 END ----
 ```
 
 > 路径 `/www/wwwroot/image.example.com` 替换成你实际的站点根目录路径
+
+> **反代说明：** `resolver 8.8.8.8` 让 Nginx 能动态解析上游域名；`proxy_read_timeout 600s` 防止生图耗时过长被 Cloudflare 以 524 截断；末尾的 `/` 必须保留，用于剥离 location 前缀再转发。
 
 保存后点击 **「保存」**，Nginx 会自动重载。
 
@@ -241,7 +287,7 @@ npm install
 |------|------|
 | 登录页 | 访问时需先输入 OpenAI API Key 才能进入主界面 |
 | API Key 存储 | 勾选"保持登录状态"则存 localStorage，否则仅内存 |
-| 预设 API URL | 设置 → API 配置 → API URL 为下拉选择，默认 `https://axiomcode.dev/v1` |
+| 预设 API URL | 设置 → API 配置 → API URL 为下拉选择，默认 `https://image.gajxsh.com/api-proxy/v1`（Nginx 反代） |
 | 字体资源 | `public/fonts/` 内含 9 个 WOFF2 文件，构建后位于 `dist/fonts/`，**必须一起上传** |
 
 ---
@@ -268,4 +314,4 @@ npm install
 
 ---
 
-*文档版本：2026-06-13 | 项目版本：v0.6.4*
+*文档版本：2026-06-18 | 项目版本：v0.6.4*

@@ -39,15 +39,18 @@
 
 ---
 
-### ✅ 3. API URL 改为下拉选择
+### ✅ 3. API URL 改为下拉选择（服务器反代地址）
 
 **修改文件** `src/components/SettingsModal.tsx`：
 - 仅当 `provider === 'openai'` 时显示预设下拉
-- 三个预设地址：
-  - `https://axiomcode.dev/v1`（默认）
-  - `https://api.axiomcode.dev/v1`
-  - `https://global.axiomcode.dev/v1`
+- 三个预设地址（均为 `image.gajxsh.com` 的 Nginx 反代，解决 CORS 和 Cloudflare 524 超时问题）：
+  - `https://image.gajxsh.com/api-proxy/v1`（默认，代理 axiomcode.dev）
+  - `https://image.gajxsh.com/api-proxy-api/v1`（代理 api.axiomcode.dev）
+  - `https://image.gajxsh.com/api-proxy-global/v1`（代理 global.axiomcode.dev）
 - 其他 provider 保持原始文本输入框不变
+
+**修改文件** `src/lib/apiProfiles.ts`：
+- `OPENAI_DEFAULT_BASE_URL` 改为 `https://image.gajxsh.com/api-proxy/v1`（新用户默认走反代）
 
 ---
 
@@ -68,8 +71,9 @@
 | `src/styles/axiom-login.css` | **新增** | 从 axiom-ui 提取的完整样式 |
 | `public/fonts/*.woff2` (×9) | **新增** | Geist / Geist Mono / Newsreader |
 | `src/App.tsx` | **修改** | 新增登录拦截 + handleLogin |
-| `src/components/Header.tsx` | **修改** | 已登录状态展示 + 退出按钮 |
-| `src/components/SettingsModal.tsx` | **修改** | API URL 改为预设下拉 |
+| `src/components/Header.tsx` | **修改** | 已登录状态展示 + 退出按钮；标题改为 AxiomCode-image |
+| `src/components/SettingsModal.tsx` | **修改** | API URL 改为预设下拉（3个反代地址） |
+| `src/lib/apiProfiles.ts` | **修改** | 默认 API URL 改为服务器反代地址 |
 
 ---
 
@@ -114,4 +118,4 @@ git merge upstream/main
 
 ---
 
-*最后更新：2026-06-13*
+*最后更新：2026-06-18*

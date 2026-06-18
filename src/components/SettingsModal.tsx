@@ -39,9 +39,9 @@ function newId(prefix: string) {
 }
 
 const PRESET_API_URLS = [
-  'https://axiomcode.dev/v1',
-  'https://api.axiomcode.dev/v1',
-  'https://global.axiomcode.dev/v1',
+  'https://image.gajxsh.com/api-proxy/v1',
+  'https://image.gajxsh.com/api-proxy-api/v1',
+  'https://image.gajxsh.com/api-proxy-global/v1',
 ]
 
 const ADD_CUSTOM_PROVIDER_VALUE = '__add_custom_provider__'
